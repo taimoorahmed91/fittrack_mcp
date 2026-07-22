@@ -1,0 +1,21 @@
+{
+  "name": "fittrack-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A minimal, vendor-neutral FitTrack MCP server",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "build": "xmcp build",
+    "dev": "xmcp dev",
+    "start": "node dist/http.js"
+  },
+  "dependencies": {
+    "zod": "^4.3.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "xmcp": "^0.6.13"
+  }
+}

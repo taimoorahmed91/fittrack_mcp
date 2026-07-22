@@ -1,0 +1,6 @@
+node_modules
+dist
+.xmcp
+.vercel
+*.log
+.DS_Store

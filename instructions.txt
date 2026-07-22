@@ -1,0 +1,66 @@
+You’re right. Here is the plan only.
+
+## Phase 1: prove the connection
+
+1. **Define the smallest success condition**
+   ChatGPT connects to your MCP server and retrieves one static response.
+
+2. **Prepare the Git repository**
+   Keep it empty or minimal. Confirm it is connected to the account you will use with Vercel.
+
+3. **Choose the MCP server framework**
+   Use a Vercel-friendly MCP framework. Do not add Supabase, OAuth, or business logic yet.
+
+4. **Create one read-only tool**
+   The tool should return a fixed static payload such as app name, status, and a few sample categories.
+
+5. **Run the MCP server locally**
+   Confirm the server starts and exposes the MCP endpoint.
+
+6. **Test locally with an MCP client or inspector**
+   Verify that:
+
+   * the server is reachable,
+   * the tool is discovered,
+   * the tool returns the expected static data.
+
+7. **Push the working version to Git**
+   Commit only after the local test passes.
+
+8. **Import the repository into Vercel**
+   Deploy using default settings unless the chosen framework requires specific build configuration.
+
+9. **Test the public Vercel MCP endpoint**
+   Use the same inspector or MCP client against the public URL. Do not involve ChatGPT until this works.
+
+10. **Enable Developer Mode in ChatGPT**
+    Create a custom app/connector using the public Vercel MCP endpoint.
+
+11. **Use no authentication for Phase 1**
+    Since the data is static and public, OAuth adds no value yet.
+
+12. **Test the tool inside ChatGPT**
+    First ask ChatGPT explicitly to call the tool. Then test whether it selects the tool naturally from a normal question.
+
+## Phase 1 is complete when
+
+```text
+Local MCP works
+Public Vercel MCP works
+ChatGPT discovers the tool
+ChatGPT retrieves the static data
+```
+
+## Phase 2, later
+
+After Phase 1 works:
+
+```text
+Static data
+→ public Supabase read
+→ authenticated Supabase read
+→ OAuth
+→ user-specific writes
+```
+
+Do not touch OAuth before the static tool works end to end. That would mix two separate problems and make debugging unnecessarily painful.
