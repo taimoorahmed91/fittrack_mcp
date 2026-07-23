@@ -30,6 +30,18 @@ export const schema = {
     .describe(
       "Exact recorded weight in kilograms. When omitted, weight is not used as a filter.",
     ),
+  sortBy: z
+    .enum(["date", "weight"])
+    .optional()
+    .describe(
+      "Column to sort by. When omitted, entries are sorted by created_at descending.",
+    ),
+  sortOrder: z
+    .enum(["ascending", "descending"])
+    .optional()
+    .describe(
+      "Sort direction for sortBy. Defaults to descending when sortBy is provided.",
+    ),
 };
 
 export const metadata: ToolMetadata = {
@@ -51,6 +63,8 @@ export const metadata: ToolMetadata = {
 export default async function findWeightEntries({
   date,
   weight,
+  sortBy,
+  sortOrder,
 }: InferSchema<typeof schema>, extra: ToolExtraArguments) {
   const accessToken = extra.authInfo?.token;
 
@@ -82,9 +96,25 @@ export default async function findWeightEntries({
   let query = supabase
     .from("fittrack_weight")
     .select("weight,date,notes,created_at")
-    .order("date", { ascending: false })
-    .order("created_at", { ascending: false })
     .limit(100);
+
+  const appliedSort = sortBy
+    ? {
+        column: sortBy,
+        order: sortOrder ?? ("descending" as const),
+      }
+    : {
+        column: "created_at" as const,
+        order: "descending" as const,
+      };
+
+  if (sortBy) {
+    query = query
+      .order(sortBy, { ascending: appliedSort.order === "ascending" })
+      .order("created_at", { ascending: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
 
   if (effectiveDateFilter?.length === 7) {
     const [year, month] = effectiveDateFilter.split("-").map(Number);
@@ -136,6 +166,7 @@ export default async function findWeightEntries({
                       : {}),
                     ...(weight !== undefined ? { weight } : {}),
                   },
+                  sort: appliedSort,
                   entries: data,
                 },
                 null,
@@ -148,6 +179,7 @@ export default async function findWeightEntries({
         ...(effectiveDateFilter ? { date: effectiveDateFilter } : {}),
         ...(weight !== undefined ? { weight } : {}),
       },
+      sort: appliedSort,
       entries: data,
     },
   };

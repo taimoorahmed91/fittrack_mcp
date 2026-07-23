@@ -15,6 +15,9 @@ When both inputs are omitted, it defaults to the current UTC month. It refuses
 requests without a verified Supabase OAuth bearer token and relies on Supabase
 RLS to enforce `auth.uid() = user_id`.
 
+Results can be sorted by `date` or `weight`, ascending or descending. Without
+sorting inputs, the query defaults to `created_at` descending.
+
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
 authorization server, while the MCP server remains the resource server.
