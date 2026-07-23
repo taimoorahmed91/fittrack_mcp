@@ -8,6 +8,7 @@
   },
   "scripts": {
     "build": "xmcp build",
+    "postbuild": "node scripts/patch-xmcp-oauth-metadata.mjs",
     "dev": "xmcp dev",
     "start": "node dist/http.js",
     "test:db-read": "node --env-file=.env.local scripts/test-supabase-read.mjs"
