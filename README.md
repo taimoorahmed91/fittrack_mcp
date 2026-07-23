@@ -23,6 +23,12 @@ sorting behavior to `public.fittrack_waist`. It accepts a month or exact date,
 an exact waist measurement in centimeters, and optional sorting by `date` or
 `waist`. Without sorting inputs, it defaults to `created_at` descending.
 
+`get-recent-meal-entries` applies protected, read-only filtering and sorting to
+`public.fittrack_meals`. It accepts a month or exact date, a case-insensitive
+food-description fragment, exact calories, and optional sorting by `date`,
+`calories`, `time`, or `food`. Without sorting inputs, it defaults to
+`created_at` descending.
+
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
 authorization server, while the MCP server remains the resource server.
