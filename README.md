@@ -8,6 +8,11 @@ A minimal, public, read-only MCP server built with XMCP and HTTP transport.
 status, and sample tracking categories. It does not require authentication and
 does not read or write external data.
 
+`get-recent-weight-entries` is a protected, read-only tool that selects the
+authenticated user's latest records from `public.fittrack_weight`. It refuses
+requests without a bearer token and relies on Supabase RLS to enforce
+`auth.uid() = user_id`.
+
 ## Requirements
 
 - Node.js 20 or newer
