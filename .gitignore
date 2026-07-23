@@ -2,5 +2,8 @@ node_modules
 dist
 .xmcp
 .vercel
+.env
+.env.*
+!.env.example
 *.log
 .DS_Store

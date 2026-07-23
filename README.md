@@ -22,6 +22,20 @@ npm run dev
 
 The MCP endpoint is available at `http://localhost:3001/mcp`.
 
+## Supabase connectivity safety test
+
+Copy `.env.example` to `.env.local` and provide the project URL and an
+`sb_publishable_...` key. Never use a secret or service-role key.
+
+```bash
+npm run test:db-read
+```
+
+The test performs an anonymous, read-only request against
+`public.fittrack_weight` without returning row data. It passes only when RLS
+hides every row from the anonymous role. No database-backed MCP tool is exposed
+until user authentication is implemented.
+
 ## Build
 
 ```bash
