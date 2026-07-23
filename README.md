@@ -18,6 +18,11 @@ RLS to enforce `auth.uid() = user_id`.
 Results can be sorted by `date` or `weight`, ascending or descending. Without
 sorting inputs, the query defaults to `created_at` descending.
 
+`get-recent-waist-entries` applies the same protected, read-only filtering and
+sorting behavior to `public.fittrack_waist`. It accepts a month or exact date,
+an exact waist measurement in centimeters, and optional sorting by `date` or
+`waist`. Without sorting inputs, it defaults to `created_at` descending.
+
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
 authorization server, while the MCP server remains the resource server.
