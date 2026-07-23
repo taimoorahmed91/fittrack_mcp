@@ -14,10 +14,13 @@ import { createSupabaseClient } from "../lib/supabase";
 export const schema = {
   date: z
     .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must use YYYY-MM-DD format")
+    .regex(
+      /^\d{4}-(?:0[1-9]|1[0-2])(?:-(?:0[1-9]|[12]\d|3[01]))?$/,
+      "Date must use YYYY-MM or YYYY-MM-DD format",
+    )
     .optional()
     .describe(
-      "Exact weight-entry date in YYYY-MM-DD format. If both date and weight are omitted, the current UTC date is used.",
+      "Weight-entry month (YYYY-MM) or exact date (YYYY-MM-DD). If both date and weight are omitted, the current UTC month is used.",
     ),
   weight: z
     .number()
@@ -30,11 +33,11 @@ export const schema = {
 };
 
 export const metadata: ToolMetadata = {
-  name: "find-weight-entries",
+  name: "get-recent-weight-entries",
   description:
-    "Find the authenticated user's FitTrack weight entries by exact date, exact weight, or both. Use this instead of relying on a latest-ten-record window.",
+    "Find the authenticated user's FitTrack weight entries by month, exact date, exact weight, or a combination of date and weight. This is not limited to the latest ten records.",
   annotations: {
-    title: "Find weight entries",
+    title: "Get weight entries",
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
@@ -72,9 +75,9 @@ export default async function findWeightEntries({
   }
 
   const supabase = createSupabaseClient(accessToken);
-  const effectiveDate =
+  const effectiveDateFilter =
     date ??
-    (weight === undefined ? new Date().toISOString().slice(0, 10) : undefined);
+    (weight === undefined ? new Date().toISOString().slice(0, 7) : undefined);
 
   let query = supabase
     .from("fittrack_weight")
@@ -83,8 +86,18 @@ export default async function findWeightEntries({
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (effectiveDate) {
-    query = query.eq("date", effectiveDate);
+  if (effectiveDateFilter?.length === 7) {
+    const [year, month] = effectiveDateFilter.split("-").map(Number);
+    const nextMonth =
+      month === 12
+        ? `${year + 1}-01-01`
+        : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+
+    query = query
+      .gte("date", `${effectiveDateFilter}-01`)
+      .lt("date", nextMonth);
+  } else if (effectiveDateFilter) {
+    query = query.eq("date", effectiveDateFilter);
   }
 
   if (weight !== undefined) {
@@ -112,13 +125,15 @@ export default async function findWeightEntries({
         text:
           data.length === 0
             ? `No weight entries matched ${JSON.stringify({
-                ...(effectiveDate ? { date: effectiveDate } : {}),
+                ...(effectiveDateFilter ? { date: effectiveDateFilter } : {}),
                 ...(weight !== undefined ? { weight } : {}),
               })} for the authenticated user.`
             : JSON.stringify(
                 {
                   filters: {
-                    ...(effectiveDate ? { date: effectiveDate } : {}),
+                    ...(effectiveDateFilter
+                      ? { date: effectiveDateFilter }
+                      : {}),
                     ...(weight !== undefined ? { weight } : {}),
                   },
                   entries: data,
@@ -130,7 +145,7 @@ export default async function findWeightEntries({
     ],
     structuredContent: {
       filters: {
-        ...(effectiveDate ? { date: effectiveDate } : {}),
+        ...(effectiveDateFilter ? { date: effectiveDateFilter } : {}),
         ...(weight !== undefined ? { weight } : {}),
       },
       entries: data,

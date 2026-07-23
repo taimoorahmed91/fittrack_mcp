@@ -8,11 +8,12 @@ A read-only MCP server built with XMCP, Supabase Auth, and HTTP transport.
 status, and sample tracking categories. It does not require authentication and
 does not read or write external data.
 
-`find-weight-entries` is a protected, read-only tool that selects the
-authenticated user's records from `public.fittrack_weight` using an exact date,
-an exact weight in kilograms, or both. When both inputs are omitted, it defaults
-to the current UTC date. It refuses requests without a verified Supabase OAuth
-bearer token and relies on Supabase RLS to enforce `auth.uid() = user_id`.
+`get-recent-weight-entries` is a protected, read-only tool that selects the
+authenticated user's records from `public.fittrack_weight` using a month, an
+exact date, an exact weight in kilograms, or a combination of date and weight.
+When both inputs are omitted, it defaults to the current UTC month. It refuses
+requests without a verified Supabase OAuth bearer token and relies on Supabase
+RLS to enforce `auth.uid() = user_id`.
 
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
