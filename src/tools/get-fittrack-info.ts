@@ -1,5 +1,7 @@
 import { type ToolMetadata } from "xmcp";
 
+import { getNoAuthSecuritySchemes } from "../lib/oauth";
+
 const fitTrackInfo = {
   appName: "FitTrack",
   status: "ready",
@@ -18,6 +20,9 @@ export const metadata: ToolMetadata = {
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
+  },
+  _meta: {
+    securitySchemes: getNoAuthSecuritySchemes(),
   },
 };
 

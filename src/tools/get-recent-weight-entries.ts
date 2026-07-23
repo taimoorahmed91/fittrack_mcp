@@ -1,10 +1,14 @@
 import { z } from "zod";
-import { headers } from "xmcp/headers";
 import {
   type InferSchema,
+  type ToolExtraArguments,
   type ToolMetadata,
 } from "xmcp";
 
+import {
+  createBearerChallenge,
+  getOAuthSecuritySchemes,
+} from "../lib/oauth";
 import { createSupabaseClient } from "../lib/supabase";
 
 export const schema = {
@@ -28,26 +32,15 @@ export const metadata: ToolMetadata = {
     idempotentHint: true,
     openWorldHint: false,
   },
+  _meta: {
+    securitySchemes: getOAuthSecuritySchemes(),
+  },
 };
-
-function getBearerToken(): string | undefined {
-  const authorization = headers().authorization;
-  const value = Array.isArray(authorization)
-    ? authorization[0]
-    : authorization;
-
-  if (!value) {
-    return undefined;
-  }
-
-  const match = value.match(/^Bearer\s+(.+)$/i);
-  return match?.[1];
-}
 
 export default async function getRecentWeightEntries({
   limit,
-}: InferSchema<typeof schema>) {
-  const accessToken = getBearerToken();
+}: InferSchema<typeof schema>, extra: ToolExtraArguments) {
+  const accessToken = extra.authInfo?.token;
 
   if (!accessToken) {
     return {
@@ -58,6 +51,14 @@ export default async function getRecentWeightEntries({
           text: "Authentication is required to retrieve weight entries.",
         },
       ],
+      _meta: {
+        "mcp/www_authenticate": [
+          createBearerChallenge(
+            "invalid_token",
+            "Sign in to FitTrack to retrieve your weight entries.",
+          ),
+        ],
+      },
     };
   }
 

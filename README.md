@@ -1,6 +1,6 @@
 # FitTrack MCP
 
-A minimal, public, read-only MCP server built with XMCP and HTTP transport.
+A read-only MCP server built with XMCP, Supabase Auth, and HTTP transport.
 
 ## Tool
 
@@ -10,8 +10,12 @@ does not read or write external data.
 
 `get-recent-weight-entries` is a protected, read-only tool that selects the
 authenticated user's latest records from `public.fittrack_weight`. It refuses
-requests without a bearer token and relies on Supabase RLS to enforce
-`auth.uid() = user_id`.
+requests without a verified Supabase OAuth bearer token and relies on Supabase
+RLS to enforce `auth.uid() = user_id`.
+
+The server publishes OAuth Protected Resource Metadata at
+`/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
+authorization server, while the MCP server remains the resource server.
 
 ## Requirements
 
@@ -29,8 +33,9 @@ The MCP endpoint is available at `http://localhost:3001/mcp`.
 
 ## Supabase connectivity safety test
 
-Copy `.env.example` to `.env.local` and provide the project URL and an
-`sb_publishable_...` key. Never use a secret or service-role key.
+Copy `.env.example` to `.env.local` and provide the project URL, an
+`sb_publishable_...` key, and the canonical MCP endpoint URL. Never use a
+secret or service-role key.
 
 ```bash
 npm run test:db-read
@@ -38,8 +43,26 @@ npm run test:db-read
 
 The test performs an anonymous, read-only request against
 `public.fittrack_weight` without returning row data. It passes only when RLS
-hides every row from the anonymous role. No database-backed MCP tool is exposed
-until user authentication is implemented.
+hides every row from the anonymous role.
+
+## Authentication
+
+Configure Supabase Auth with:
+
+- OAuth 2.1 Server enabled
+- Dynamic OAuth application registration enabled
+- Site URL `https://fittrack.taimoorahmed.com`
+- Authorization path `/oauth/consent`
+
+The web application owns the consent page. The MCP server verifies supplied
+access tokens through Supabase Auth before passing them to the read-only
+database client. Only OAuth-issued tokens containing a `client_id` are accepted.
+
+Set the production resource URL to the exact endpoint used by MCP clients:
+
+```text
+MCP_RESOURCE_URL=https://fittrackmcp.vercel.app/mcp
+```
 
 ## Build
 
