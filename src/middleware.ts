@@ -64,6 +64,16 @@ function rejectUnauthorized(res: Response, description: string): void {
     });
 }
 
+function requestAuthentication(res: Response): void {
+  res
+    .status(401)
+    .set("WWW-Authenticate", createBearerChallenge())
+    .json({
+      error: "unauthorized",
+      error_description: "Authentication is required to access FitTrack.",
+    });
+}
+
 function setRequestHeader(req: Request, name: string, value: string): void {
   const normalizedName = name.toLowerCase();
   req.headers[normalizedName] = value;
@@ -79,6 +89,16 @@ function setRequestHeader(req: Request, name: string, value: string): void {
   if (!foundRawHeader) {
     req.rawHeaders.push(name, value);
   }
+}
+
+function hasJsonRpcMethod(body: unknown): boolean {
+  return (
+    typeof body === "object" &&
+    body !== null &&
+    !Array.isArray(body) &&
+    "method" in body &&
+    typeof body.method === "string"
+  );
 }
 
 async function verifyBearerToken(token: string): Promise<AuthInfo | undefined> {
@@ -169,22 +189,68 @@ const normalizeMcpRequestMiddleware: RequestHandler = (req, res, next) => {
   // Some MCP clients can consume both supported response formats but send an
   // incomplete Accept or Content-Type header. The SDK rejects those requests
   // before tool discovery, so normalize their MCP POST headers.
-  const accept = req.headers.accept ?? "";
+  const originalAccept = req.headers.accept ?? "";
+  const originalContentType = req.headers["content-type"] ?? "";
+  const accept = originalAccept;
   const acceptsJson = accept.includes("application/json");
   const acceptsEventStream = accept.includes("text/event-stream");
+
+  res.on("finish", () => {
+    if (res.statusCode < 400) {
+      return;
+    }
+
+    const body = req.body as unknown;
+    console.info(
+      JSON.stringify({
+        event: "mcp_request_rejected",
+        status: res.statusCode,
+        hasAuthorization: Boolean(req.headers.authorization),
+        originalAccept: originalAccept || null,
+        originalContentType: originalContentType || null,
+        contentLength: req.headers["content-length"] ?? null,
+        bodyType:
+          body === undefined
+            ? "undefined"
+            : Array.isArray(body)
+              ? "array"
+              : typeof body,
+        rpcMethod:
+          typeof body === "object" &&
+          body !== null &&
+          !Array.isArray(body) &&
+          "method" in body &&
+          typeof body.method === "string"
+            ? body.method
+            : null,
+      }),
+    );
+  });
 
   if (!acceptsJson || !acceptsEventStream) {
     setRequestHeader(req, "Accept", "application/json, text/event-stream");
   }
 
-  const contentType = req.headers["content-type"] ?? "";
+  const contentType = originalContentType;
   const needsJsonBodyParsing = !contentType.includes("application/json");
   if (needsJsonBodyParsing) {
     setRequestHeader(req, "Content-Type", "application/json");
   }
 
   if (needsJsonBodyParsing) {
-    parseMcpJsonBody(req, res, next);
+    parseMcpJsonBody(req, res, (error) => {
+      if (error) {
+        next(error);
+        return;
+      }
+
+      if (!req.headers.authorization && !hasJsonRpcMethod(req.body)) {
+        requestAuthentication(res);
+        return;
+      }
+
+      next();
+    });
     return;
   }
 

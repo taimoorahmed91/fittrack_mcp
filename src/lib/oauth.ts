@@ -47,15 +47,21 @@ export function getNoAuthSecuritySchemes() {
 }
 
 export function createBearerChallenge(
-  error: "invalid_token" | "insufficient_scope" = "invalid_token",
+  error?: "invalid_token" | "insufficient_scope",
   errorDescription = "Authentication is required to continue.",
 ): string {
-  const escapedDescription = errorDescription.replace(/["\\]/g, "\\$&");
-
-  return `Bearer ${[
+  const parts = [
     `resource_metadata="${getResourceMetadataUrl()}"`,
     `scope="${getOAuthScopes().join(" ")}"`,
-    `error="${error}"`,
-    `error_description="${escapedDescription}"`,
-  ].join(", ")}`;
+  ];
+
+  if (error) {
+    const escapedDescription = errorDescription.replace(/["\\]/g, "\\$&");
+    parts.push(
+      `error="${error}"`,
+      `error_description="${escapedDescription}"`,
+    );
+  }
+
+  return `Bearer ${parts.join(", ")}`;
 }
