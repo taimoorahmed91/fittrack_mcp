@@ -148,6 +148,32 @@ const bearerAuthMiddleware: RequestHandler = async (req, res, next) => {
     return;
   }
 
+  // Some MCP clients can consume both supported response formats but send an
+  // incomplete Accept header. The SDK rejects those requests with 406 before
+  // tool discovery, so advertise both formats on their behalf.
+  if (req.method === "POST") {
+    const accept = req.headers.accept ?? "";
+    const acceptsJson = accept.includes("application/json");
+    const acceptsEventStream = accept.includes("text/event-stream");
+
+    if (!acceptsJson || !acceptsEventStream) {
+      const compatibleAccept = "application/json, text/event-stream";
+      req.headers.accept = compatibleAccept;
+
+      let foundRawAccept = false;
+      for (let index = 0; index < req.rawHeaders.length; index += 2) {
+        if (req.rawHeaders[index]?.toLowerCase() === "accept") {
+          req.rawHeaders[index + 1] = compatibleAccept;
+          foundRawAccept = true;
+        }
+      }
+
+      if (!foundRawAccept) {
+        req.rawHeaders.push("Accept", compatibleAccept);
+      }
+    }
+  }
+
   const authorization = req.headers.authorization;
   if (!authorization) {
     next();
