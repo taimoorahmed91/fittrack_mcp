@@ -1,5 +1,5 @@
 import type { Request, RequestHandler, Response } from "express";
-import { Router } from "express";
+import { json, Router } from "express";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types";
 import type { Middleware } from "xmcp";
 
@@ -64,6 +64,23 @@ function rejectUnauthorized(res: Response, description: string): void {
     });
 }
 
+function setRequestHeader(req: Request, name: string, value: string): void {
+  const normalizedName = name.toLowerCase();
+  req.headers[normalizedName] = value;
+
+  let foundRawHeader = false;
+  for (let index = 0; index < req.rawHeaders.length; index += 2) {
+    if (req.rawHeaders[index]?.toLowerCase() === normalizedName) {
+      req.rawHeaders[index + 1] = value;
+      foundRawHeader = true;
+    }
+  }
+
+  if (!foundRawHeader) {
+    req.rawHeaders.push(name, value);
+  }
+}
+
 async function verifyBearerToken(token: string): Promise<AuthInfo | undefined> {
   const supabase = createSupabaseClient();
   const { data, error } = await supabase.auth.getClaims(token);
@@ -100,6 +117,7 @@ async function verifyBearerToken(token: string): Promise<AuthInfo | undefined> {
 }
 
 const oauthRouter = Router();
+const parseMcpJsonBody = json({ limit: "10mb" });
 
 oauthRouter.options(
   [
@@ -142,36 +160,41 @@ oauthRouter.get(
   },
 );
 
-const bearerAuthMiddleware: RequestHandler = async (req, res, next) => {
-  if (!req.path.startsWith("/mcp")) {
+const normalizeMcpRequestMiddleware: RequestHandler = (req, res, next) => {
+  if (!req.path.startsWith("/mcp") || req.method !== "POST") {
     next();
     return;
   }
 
   // Some MCP clients can consume both supported response formats but send an
-  // incomplete Accept header. The SDK rejects those requests with 406 before
-  // tool discovery, so advertise both formats on their behalf.
-  if (req.method === "POST") {
-    const accept = req.headers.accept ?? "";
-    const acceptsJson = accept.includes("application/json");
-    const acceptsEventStream = accept.includes("text/event-stream");
+  // incomplete Accept or Content-Type header. The SDK rejects those requests
+  // before tool discovery, so normalize their MCP POST headers.
+  const accept = req.headers.accept ?? "";
+  const acceptsJson = accept.includes("application/json");
+  const acceptsEventStream = accept.includes("text/event-stream");
 
-    if (!acceptsJson || !acceptsEventStream) {
-      const compatibleAccept = "application/json, text/event-stream";
-      req.headers.accept = compatibleAccept;
+  if (!acceptsJson || !acceptsEventStream) {
+    setRequestHeader(req, "Accept", "application/json, text/event-stream");
+  }
 
-      let foundRawAccept = false;
-      for (let index = 0; index < req.rawHeaders.length; index += 2) {
-        if (req.rawHeaders[index]?.toLowerCase() === "accept") {
-          req.rawHeaders[index + 1] = compatibleAccept;
-          foundRawAccept = true;
-        }
-      }
+  const contentType = req.headers["content-type"] ?? "";
+  const needsJsonBodyParsing = !contentType.includes("application/json");
+  if (needsJsonBodyParsing) {
+    setRequestHeader(req, "Content-Type", "application/json");
+  }
 
-      if (!foundRawAccept) {
-        req.rawHeaders.push("Accept", compatibleAccept);
-      }
-    }
+  if (needsJsonBodyParsing) {
+    parseMcpJsonBody(req, res, next);
+    return;
+  }
+
+  next();
+};
+
+const bearerAuthMiddleware: RequestHandler = async (req, res, next) => {
+  if (!req.path.startsWith("/mcp")) {
+    next();
+    return;
   }
 
   const authorization = req.headers.authorization;
@@ -203,8 +226,9 @@ const bearerAuthMiddleware: RequestHandler = async (req, res, next) => {
 const middleware: Middleware[] = [
   {
     router: oauthRouter,
-    middleware: bearerAuthMiddleware,
+    middleware: normalizeMcpRequestMiddleware,
   },
+  bearerAuthMiddleware,
 ];
 
 export default middleware;
