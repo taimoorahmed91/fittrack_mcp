@@ -20,14 +20,23 @@ export const schema = {
     )
     .optional()
     .describe(
-      "Meal month (YYYY-MM) or exact date (YYYY-MM-DD). When omitted, the current UTC month is used.",
+      "Meal month (YYYY-MM) or exact date (YYYY-MM-DD). If both date and food are omitted, the current UTC month is used.",
+    ),
+  food: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .optional()
+    .describe(
+      "Case-insensitive food-text fragment. A complete stored meal description is not required.",
     ),
 };
 
 export const metadata: ToolMetadata = {
   name: "get-recent-meal-entries",
   description:
-    "Get the authenticated user's FitTrack meal entries for a month or exact date.",
+    "Get the authenticated user's FitTrack meal entries by month, exact date, partial food description, or a combination of date and food.",
   annotations: {
     title: "Get meal entries",
     readOnlyHint: true,
@@ -40,8 +49,12 @@ export const metadata: ToolMetadata = {
   },
 };
 
+function escapeLikeFragment(value: string): string {
+  return value.replace(/[\\%_]/g, "\\$&");
+}
+
 export default async function getRecentMealEntries(
-  { date }: InferSchema<typeof schema>,
+  { date, food }: InferSchema<typeof schema>,
   extra: ToolExtraArguments,
 ) {
   const accessToken = extra.authInfo?.token;
@@ -68,7 +81,7 @@ export default async function getRecentMealEntries(
 
   const supabase = createSupabaseClient(accessToken);
   const effectiveDateFilter =
-    date ?? new Date().toISOString().slice(0, 7);
+    date ?? (food === undefined ? new Date().toISOString().slice(0, 7) : undefined);
 
   let query = supabase
     .from("fittrack_meals")
@@ -76,7 +89,7 @@ export default async function getRecentMealEntries(
     .order("created_at", { ascending: false })
     .limit(100);
 
-  if (effectiveDateFilter.length === 7) {
+  if (effectiveDateFilter?.length === 7) {
     const [year, month] = effectiveDateFilter.split("-").map(Number);
     const nextMonth =
       month === 12
@@ -86,8 +99,12 @@ export default async function getRecentMealEntries(
     query = query
       .gte("date", `${effectiveDateFilter}-01`)
       .lt("date", nextMonth);
-  } else {
+  } else if (effectiveDateFilter) {
     query = query.eq("date", effectiveDateFilter);
+  }
+
+  if (food !== undefined) {
+    query = query.ilike("food", `%${escapeLikeFragment(food)}%`);
   }
 
   const { data, error } = await query;
@@ -104,16 +121,21 @@ export default async function getRecentMealEntries(
     };
   }
 
+  const filters = {
+    ...(effectiveDateFilter ? { date: effectiveDateFilter } : {}),
+    ...(food !== undefined ? { foodContains: food } : {}),
+  };
+
   return {
     content: [
       {
         type: "text" as const,
         text:
           data.length === 0
-            ? `No meal entries matched ${effectiveDateFilter} for the authenticated user.`
+            ? `No meal entries matched ${JSON.stringify(filters)} for the authenticated user.`
             : JSON.stringify(
                 {
-                  date: effectiveDateFilter,
+                  filters,
                   entries: data,
                 },
                 null,
@@ -122,7 +144,7 @@ export default async function getRecentMealEntries(
       },
     ],
     structuredContent: {
-      date: effectiveDateFilter,
+      filters,
       entries: data,
     },
   };
