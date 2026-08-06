@@ -25,8 +25,9 @@ an exact waist measurement in centimeters, and optional sorting by `date` or
 
 `get-recent-meal-entries` is a protected, read-only tool for
 `public.fittrack_meals`. It accepts a month or exact date and a
-case-insensitive food-description fragment. When both inputs are omitted, it
-defaults to the current UTC month with `created_at` descending.
+case-insensitive food-description fragment, and returns each meal's calorie and
+protein values. When both inputs are omitted, it defaults to the current UTC
+month with `created_at` descending.
 
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
