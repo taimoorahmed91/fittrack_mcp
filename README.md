@@ -29,6 +29,18 @@ case-insensitive food-description fragment, and returns each meal's calorie and
 protein values. When both inputs are omitted, it defaults to the current UTC
 month with `created_at` descending.
 
+`get-recent-gym-sessions` is a protected, read-only tool for
+`public.fittrack_gym_sessions`. It returns up to ten sessions ordered by newest
+date and accepts an optional month, exact date, or case-insensitive partial
+exercise/session name. Results include duration, detailed workout notes, start
+and end times, and creation and update timestamps.
+
+`get-recent-extra-activities` is a protected, read-only tool for
+`public.fittrack_extra_activities`. It returns up to ten activities ordered by
+newest date and accepts an optional month, exact date, or case-insensitive
+partial activity name. Results include intensity, duration in minutes, notes,
+time, calories, and creation and update timestamps.
+
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
 authorization server, while the MCP server remains the resource server.
