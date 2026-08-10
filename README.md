@@ -25,9 +25,9 @@ an exact waist measurement in centimeters, and optional sorting by `date` or
 
 `get-recent-meal-entries` is a protected, read-only tool for
 `public.fittrack_meals`. It accepts a month or exact date and a
-case-insensitive food-description fragment, and returns each meal's calorie and
-protein values. When both inputs are omitted, it defaults to the current UTC
-month with `created_at` descending.
+case-insensitive food-description fragment, and returns each meal's calorie,
+protein, and carbohydrate values. When both inputs are omitted, it defaults to
+the current UTC month with `created_at` descending.
 
 `get-recent-gym-sessions` is a protected, read-only tool for
 `public.fittrack_gym_sessions`. It returns up to ten sessions ordered by newest

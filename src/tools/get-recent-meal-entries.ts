@@ -36,7 +36,7 @@ export const schema = {
 export const metadata: ToolMetadata = {
   name: "get-recent-meal-entries",
   description:
-    "Get the authenticated user's FitTrack meal entries, including calories and protein, by month, exact date, partial food description, or a combination of date and food.",
+    "Get the authenticated user's FitTrack meal entries, including calories, protein, and carbohydrates, by month, exact date, partial food description, or a combination of date and food.",
   annotations: {
     title: "Get meal entries",
     readOnlyHint: true,
@@ -85,7 +85,7 @@ export default async function getRecentMealEntries(
 
   let query = supabase
     .from("fittrack_meals")
-    .select("food,calories,protein,time,date,created_at")
+    .select("food,calories,protein,carbs,time,date,created_at")
     .order("created_at", { ascending: false })
     .limit(100);
 
