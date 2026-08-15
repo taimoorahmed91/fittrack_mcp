@@ -41,6 +41,11 @@ newest date and accepts an optional month, exact date, or case-insensitive
 partial activity name. Results include intensity, duration in minutes, notes,
 time, calories, and creation and update timestamps.
 
+`get-todays-fittrack-summary` is a protected, read-only, zero-input tool that
+returns all records dated today in UTC from the five exposed tracking tables:
+meals, gym sessions, extra activities, weight, and waist. Each category is
+returned as an array, including when no records exist for that category.
+
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
 authorization server, while the MCP server remains the resource server.
