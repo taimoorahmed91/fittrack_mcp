@@ -29,6 +29,10 @@ case-insensitive food-description fragment, and returns each meal's calorie,
 protein, and carbohydrate values. When both inputs are omitted, it defaults to
 the current UTC month with `created_at` descending.
 
+`add-meal-entry` is a protected write tool for `public.fittrack_meals`. It
+accepts a meal description, calories, protein, carbohydrates, and an ISO 8601
+timestamp with a timezone, then inserts the entry for the authenticated user.
+
 `get-recent-gym-sessions` is a protected, read-only tool for
 `public.fittrack_gym_sessions`. It returns up to ten sessions ordered by newest
 date and accepts an optional month, exact date, or case-insensitive partial
