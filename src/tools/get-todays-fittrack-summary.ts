@@ -11,7 +11,7 @@ export const schema = {};
 export const metadata: ToolMetadata = {
   name: "get-todays-fittrack-summary",
   description:
-    "Get all of the authenticated user's FitTrack records for today (UTC) in one call, including meals, gym sessions, extra activities, weight entries, and waist entries. This tool takes no input.",
+    "Get all of the authenticated user's FitTrack records for today (UTC), plus their latest WHOOP record, in one call. Includes meals, gym sessions, extra activities, weight entries, and waist entries. This tool takes no input.",
   annotations: {
     title: "Get today's FitTrack summary",
     readOnlyHint: true,
@@ -53,8 +53,14 @@ export default async function getTodaysFitTrackSummary(
   const date = new Date().toISOString().slice(0, 10);
   const supabase = createSupabaseClient(accessToken);
 
-  const [meals, gymSessions, extraActivities, weightEntries, waistEntries] =
-    await Promise.all([
+  const [
+    meals,
+    gymSessions,
+    extraActivities,
+    weightEntries,
+    waistEntries,
+    latestWhoop,
+  ] = await Promise.all([
       supabase
         .from("fittrack_meals")
         .select("food,calories,protein,carbs,time,date,created_at")
@@ -84,6 +90,15 @@ export default async function getTodaysFitTrackSummary(
         .select("waist,date,notes,created_at")
         .eq("date", date)
         .order("created_at", { ascending: false }),
+      supabase
+        .from("fittrack_whoop_data")
+        .select(
+          "date,recovery_score,hrv_rmssd_milli,resting_heart_rate,spo2_percentage,skin_temp_celsius,sleep_performance_percentage,sleep_efficiency_percentage,total_in_bed_hours,total_rem_sleep_milli,total_deep_sleep_milli,total_light_sleep_milli,total_awake_time_milli,respiratory_rate,disturbance_count,sleep_cycle_count,strain,kilojoule,average_heart_rate,max_heart_rate,created_at,updated_at,cycle_end_timestamp",
+        )
+        .order("date", { ascending: false })
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
 
   const results = {
@@ -92,6 +107,7 @@ export default async function getTodaysFitTrackSummary(
     extraActivities,
     weightEntries,
     waistEntries,
+    latestWhoop,
   };
   const failedCategories = Object.entries(results)
     .filter(([, result]) => result.error !== null)
@@ -117,6 +133,7 @@ export default async function getTodaysFitTrackSummary(
     extraActivities: extraActivities.data ?? [],
     weightEntries: weightEntries.data ?? [],
     waistEntries: waistEntries.data ?? [],
+    latestWhoop: latestWhoop.data,
   };
 
   return {

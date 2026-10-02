@@ -47,8 +47,9 @@ time, calories, and creation and update timestamps.
 
 `get-todays-fittrack-summary` is a protected, read-only, zero-input tool that
 returns all records dated today in UTC from the five exposed tracking tables:
-meals, gym sessions, extra activities, weight, and waist. Each category is
-returned as an array, including when no records exist for that category.
+meals, gym sessions, extra activities, weight, and waist. It also returns the
+newest WHOOP record, regardless of its date, as `latestWhoop`. Daily categories
+are arrays, while `latestWhoop` is an object or `null` when none exists.
 
 `get-recent-whoop-data` is a protected, read-only tool for
 `public.fittrack_whoop_data`. With no input it returns the ten newest WHOOP
