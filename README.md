@@ -50,6 +50,12 @@ returns all records dated today in UTC from the five exposed tracking tables:
 meals, gym sessions, extra activities, weight, and waist. Each category is
 returned as an array, including when no records exist for that category.
 
+`get-recent-whoop-data` is a protected, read-only tool for
+`public.fittrack_whoop_data`. With no input it returns the ten newest WHOOP
+records by date. It can also filter those results by month or exact date and
+returns recovery, HRV, heart-rate, SpO2, temperature, sleep, strain, and energy
+metrics.
+
 The server publishes OAuth Protected Resource Metadata at
 `/.well-known/oauth-protected-resource`. Supabase Auth is the OAuth 2.1
 authorization server, while the MCP server remains the resource server.
