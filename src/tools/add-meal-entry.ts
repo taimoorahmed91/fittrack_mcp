@@ -22,7 +22,9 @@ export const schema = {
     .number()
     .nonnegative()
     .max(10000)
-    .describe("Calories in the meal."),
+    .describe(
+      "Calories in the meal. Decimal values are rounded to the nearest whole calorie before storage.",
+    ),
   protein: z
     .number()
     .nonnegative()
@@ -107,13 +109,14 @@ export default async function addMealEntry(
   }
 
   const [, date, time] = timestampParts;
+  const normalizedCalories = Math.round(calories);
   const supabase = createSupabaseClient(accessToken);
   const { data, error } = await supabase
     .from("fittrack_meals")
     .insert({
       user_id: userId,
       food: mealDescription,
-      calories,
+      calories: normalizedCalories,
       protein,
       carbs,
       date,
@@ -123,12 +126,22 @@ export default async function addMealEntry(
     .single();
 
   if (error) {
+    console.error(
+      JSON.stringify({
+        event: "meal_entry_insert_failed",
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      }),
+    );
+
     return {
       isError: true,
       content: [
         {
           type: "text" as const,
-          text: "The authenticated meal entry could not be added.",
+          text: `The authenticated meal entry could not be added. Supabase error ${error.code}: ${error.message}${error.hint ? ` Hint: ${error.hint}` : ""}`,
         },
       ],
     };
@@ -136,6 +149,8 @@ export default async function addMealEntry(
 
   const result = {
     timestamp,
+    caloriesNormalizedFrom:
+      calories === normalizedCalories ? null : calories,
     entry: data,
   };
 
