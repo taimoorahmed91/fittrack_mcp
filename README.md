@@ -32,6 +32,9 @@ the current UTC month with `created_at` descending.
 `add-meal-entry` is a protected write tool for `public.fittrack_meals`. It
 accepts a meal description, calories, protein, carbohydrates, and an ISO 8601
 timestamp with a timezone, then inserts the entry for the authenticated user.
+Decimal calorie values are rounded to the nearest whole calorie before the
+insert, while protein and carbohydrate precision is preserved. Failed inserts
+return and log the Supabase error code and message.
 
 `get-recent-gym-sessions` is a protected, read-only tool for
 `public.fittrack_gym_sessions`. It returns up to ten sessions ordered by newest
